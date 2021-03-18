@@ -61,6 +61,7 @@ class Checkpointer(Registrable):
         self._last_permanent_saved_checkpoint_time = time.time()
         self._serialized_paths: List[Tuple[float, str, str]] = []
         self._last_save_time = time.time()
+        self._comet_logger = None
 
     def maybe_save_checkpoint(
         self, trainer: "allennlp.training.trainer.Trainer", epoch: int, batches_this_epoch: int
@@ -100,6 +101,9 @@ class Checkpointer(Registrable):
                 )
                 if not os.path.isfile(model_path):
                     torch.save(model_state, model_path)
+                    if self._comet_logger:
+                        self._comet_logger.log_model(model_path)
+
                 if save_model_only:
                     return
 
@@ -108,6 +112,8 @@ class Checkpointer(Registrable):
                 )
                 if not os.path.isfile(training_path):
                     torch.save({**training_states, "epoch": epoch}, training_path)
+                    if self._comet_logger:
+                        self._comet_logger.log_model(training_path)
 
             # The main checkpointing logic is now done, this is just shuffling files around, to keep
             # track of best weights, and to remove old checkpoints, if desired.
@@ -234,6 +240,12 @@ class Checkpointer(Registrable):
                 "so you're just getting the last weights"
             )
             return {}
+
+    def set_comet_logger(self, comet_logger):
+        """
+        Setting the comet_logger so Checkpoint can log weights
+        """
+        self._comet_logger = comet_logger
 
 
 Checkpointer.register("default")(Checkpointer)
