@@ -921,7 +921,7 @@ class GradientDescentTrainer(Trainer):
             self._comet_logger.log_metrics(
                 {'train_loss': batch_loss,
                  'train_reg_loss': batch_reg_loss},
-                (batches_this_epoch+1)*(epoch+1),
+                batches_this_epoch+(epoch*num_training_batches),
                 epoch
                 )
 
@@ -1064,7 +1064,7 @@ class GradientDescentTrainer(Trainer):
             self._comet_logger.log_metrics(
                 {'val_loss': val_batch_loss,
                  'val_reg_loss': val_batch_reg_loss},
-                (batches_this_epoch+1)*(epoch+1),
+                batches_this_epoch+(epoch*len(validation_data_loader)),
                 epoch
                 )
 
