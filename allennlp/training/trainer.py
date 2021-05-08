@@ -1,3 +1,4 @@
+from allennlp.training.comet_utils import CometLogger
 import datetime
 import logging
 import math
@@ -664,6 +665,21 @@ class GradientDescentTrainer(Trainer):
                 "or None (if you want to disable early stopping)".format(patience)
             )
 
+        self._comet_logger = CometLogger()
+        self._comet_logger.log_parameters(
+            {'patience': patience,
+             'validation_metric': validation_metric,
+             'num_epochs': num_epochs,
+             'cuda_device': cuda_device,
+             'grad_norm': grad_norm,
+             'grad_clipping': grad_clipping,
+             'distributed': distributed,
+             'local_rank': local_rank,
+             'world_size': world_size,
+             'num_gradient_accumulation_steps': num_gradient_accumulation_steps,
+             'use_amp': use_amp}
+        )
+
         # For tracking is_best_so_far and should_stop_early
         self._metric_tracker = MetricTracker(validation_metric, patience)
 
@@ -672,6 +688,7 @@ class GradientDescentTrainer(Trainer):
         self._checkpointer: Optional[Checkpointer] = checkpointer
         if checkpointer is None and serialization_dir is not None:
             self._checkpointer = Checkpointer(serialization_dir)
+        self._checkpointer.set_comet_logger(self._comet_logger)
 
         self._grad_norm = grad_norm
         self._grad_clipping = grad_clipping
@@ -900,6 +917,13 @@ class GradientDescentTrainer(Trainer):
                 world_size=self._world_size,
                 cuda_device=self.cuda_device,
             )
+            
+            self._comet_logger.log_metrics(
+                {'train_loss': batch_loss,
+                 'train_reg_loss': batch_reg_loss},
+                batches_this_epoch+(epoch*num_training_batches),
+                epoch
+                )
 
             if self._primary:
                 # Updating tqdm only for the primary as the trainers wouldn't have one
@@ -1036,6 +1060,13 @@ class GradientDescentTrainer(Trainer):
                 world_size=self._world_size,
                 cuda_device=self.cuda_device,
             )
+
+            self._comet_logger.log_metrics(
+                {'val_loss': val_batch_loss,
+                 'val_reg_loss': val_batch_reg_loss},
+                batches_this_epoch+(epoch*len(validation_data_loader)),
+                epoch
+                )
 
             description = training_util.description_from_metrics(val_metrics)
             if self._primary:

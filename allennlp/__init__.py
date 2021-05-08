@@ -13,6 +13,12 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 try:
+    import comet_ml
+
+except:
+    pass
+
+try:
     # On some systems this prevents the dreaded
     # ImportError: dlopen: cannot load any more object with static TLS
     import transformers, spacy, torch, numpy  # noqa
